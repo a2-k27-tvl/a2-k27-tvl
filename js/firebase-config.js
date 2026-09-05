@@ -1,7 +1,7 @@
 // Firebase Configuration
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, get, child, update, push, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, set, get, child, update, push, query, orderByChild, equalTo } from "firebase/database";
+import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
     apiKey: "AIzaSyD9kALAU9R8vB6x9UBcDEW1mHWagaFLzas",
@@ -17,4 +17,16 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const database = getDatabase(app);
 
-export { app, database, ref, set, get, child, update, push, query, orderByChild, equalTo };
+export { 
+    app, 
+    database, 
+    ref, 
+    set, 
+    get, 
+    child, 
+    update, 
+    push, 
+    query, 
+    orderByChild, 
+    equalTo 
+};
