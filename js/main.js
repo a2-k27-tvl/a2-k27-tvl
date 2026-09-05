@@ -288,4 +288,156 @@ loginForm.addEventListener('submit', async (e) => {
         await saveOTP(result.userData.email, otp);
         await sendOTPEmail(result.userData.email, otp);
         
-        // Lưu user để xác th
+        // Lưu user để xác thực
+        sessionStorage.setItem('loginOTPEmail', result.userData.email);
+    } else {
+        // Sai mật khẩu
+        if (result.error === 'Mật khẩu không chính xác!') {
+            const confirmReset = confirm('❌ Mật khẩu không đúng! Bạn có muốn chuyển đến trang quên mật khẩu?');
+            if (confirmReset) {
+                document.getElementById('forgotEmail').value = loginUsername.value;
+                showSection('forgotSection');
+            }
+        } else {
+            alert(`❌ ${result.error}`);
+        }
+    }
+});
+
+// ============ XÁC THỰC 2 BƯỚC ============
+document.getElementById('verifyLoginBtn').addEventListener('click', async () => {
+    const code = document.getElementById('verifyCode').value.trim();
+    const email = sessionStorage.getItem('loginOTPEmail');
+    
+    if (!code || code.length !== 6) {
+        alert('Vui lòng nhập mã xác thực 6 số!');
+        return;
+    }
+    
+    const result = await verifyOTP(email, code);
+    
+    if (result.success) {
+        // Đăng nhập thành công
+        const pendingData = JSON.parse(sessionStorage.getItem('pendingLogin'));
+        const userData = await getUserData(pendingData.userId);
+        
+        // Lưu session
+        sessionStorage.setItem('currentUser', JSON.stringify({
+            userId: pendingData.userId,
+            ...pendingData.userData
+        }));
+        sessionStorage.setItem('userRole', pendingData.userData.role);
+        
+        // Chuyển đến dashboard
+        window.location.href = 'dashboard.html';
+    } else {
+        alert(`❌ ${result.error}`);
+    }
+});
+
+// ============ GỬI LẠI MÃ XÁC THỰC ============
+document.getElementById('resendVerifyBtn').addEventListener('click', async (e) => {
+    e.preventDefault();
+    
+    const email = sessionStorage.getItem('loginOTPEmail');
+    const otp = generateOTP();
+    await saveOTP(email, otp);
+    await sendOTPEmail(email, otp);
+    
+    alert('✅ Đã gửi lại mã xác thực!');
+});
+
+// ============ MASK EMAIL ============
+function maskEmail(email) {
+    const parts = email.split('@');
+    const username = parts[0];
+    const domain = parts[1];
+    const masked = username.substring(0, 3) + '***@' + domain;
+    return masked;
+}
+
+// ============ QUÊN MẬT KHẨU ============
+document.getElementById('sendOtpForgotBtn').addEventListener('click', async () => {
+    const email = document.getElementById('forgotEmail').value.trim();
+    
+    if (!isValidEmail(email)) {
+        alert('Vui lòng nhập email hợp lệ!');
+        return;
+    }
+    
+    // Kiểm tra email tồn tại
+    const exists = await checkEmail(email);
+    if (!exists) {
+        alert('❌ Email không tồn tại trong hệ thống!');
+        return;
+    }
+    
+    const otp = generateOTP();
+    await saveOTP(email, otp);
+    await sendOTPEmail(email, otp);
+    
+    document.getElementById('otpForgotSection').style.display = 'block';
+    alert('✅ Mã OTP đã được gửi đến email của bạn!');
+});
+
+document.getElementById('resetPasswordBtn').addEventListener('click', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('forgotEmail').value.trim();
+    const otp = document.getElementById('otpForgotCode').value.trim();
+    const newPassword = prompt('Nhập mật khẩu mới (tối thiểu 6 ký tự):');
+    
+    if (!newPassword || newPassword.length < 6) {
+        alert('Mật khẩu tối thiểu 6 ký tự!');
+        return;
+    }
+    
+    const verifyResult = await verifyOTP(email, otp);
+    
+    if (verifyResult.success) {
+        // Cập nhật mật khẩu
+        // Tìm user theo email
+        const usersRef = ref(database);
+        const snapshot = await get(child(usersRef, 'users'));
+        const users = snapshot.val();
+        
+        for (let key in users) {
+            if (users[key].email === email) {
+                await update(ref(database, `users/${key}`), {
+                    password: newPassword
+                });
+                break;
+            }
+        }
+        
+        alert('✅ Đặt lại mật khẩu thành công! Vui lòng đăng nhập.');
+        showSection('loginSection');
+        document.getElementById('otpForgotSection').style.display = 'none';
+        await deleteOTP(email);
+    } else {
+        alert(`❌ ${verifyResult.error}`);
+    }
+});
+
+// ============ LIÊN HỆ ADMIN ============
+document.getElementById('contactAdminBtn').addEventListener('click', () => {
+    // Mở link liên hệ Admin
+    window.open('mailto:admin@example.com?subject=Yêu cầu hỗ trợ đặt lại mật khẩu', '_blank');
+    // Hoặc mở trang liên hệ
+    // window.location.href = 'contact.html';
+});
+
+// ============ XỬ LÝ PHÍM ENTER ============
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        const activeSection = document.querySelector('.form-section.active');
+        if (activeSection) {
+            const submitBtn = activeSection.querySelector('.btn-primary');
+            if (submitBtn) {
+                submitBtn.click();
+            }
+        }
+    }
+});
+
+console.log('🚀 Class Web đã sẵn sàng!');
