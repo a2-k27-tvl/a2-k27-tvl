@@ -11,42 +11,49 @@
         <!-- ========== PHẦN ĐĂNG KÝ ========== -->
         <div id="registerSection" class="form-section active">
             <h2>Đăng ký tài khoản</h2>
-            <form id="registerForm">
-                <div class="form-group">
-                    <label>Tên hiển thị</label>
-                    <input type="text" id="displayName" placeholder="Nguyễn Văn A" required />
+            
+            <div class="form-group">
+                <label>Tên hiển thị</label>
+                <input type="text" id="displayName" placeholder="Nguyễn Văn A" />
+            </div>
+            
+            <div class="form-group">
+                <label>Tên đăng nhập</label>
+                <input type="text" id="username" placeholder="nguyenvana" />
+                <small class="hint">Tên đăng nhập duy nhất, không trùng lặp</small>
+                <span id="usernameStatus" class="status-text"></span>
+            </div>
+            
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="your@email.com" />
+                <span id="emailStatus" class="status-text"></span>
+            </div>
+            
+            <div class="form-group">
+                <label>Mật khẩu</label>
+                <input type="password" id="password" placeholder="Mật khẩu tối thiểu 6 ký tự" />
+            </div>
+            
+            <!-- ===== PHẦN OTP - LUÔN HIỂN THỊ ===== -->
+            <div class="otp-section">
+                <div class="otp-header">
+                    <label>Mã OTP</label>
+                    <span class="otp-required">* Bắt buộc</span>
                 </div>
-                <div class="form-group">
-                    <label>Tên đăng nhập</label>
-                    <input type="text" id="username" placeholder="nguyenvana" required />
-                    <small class="hint">Tên đăng nhập duy nhất, không trùng lặp</small>
-                    <span id="usernameStatus" class="status-text"></span>
+                <div class="otp-group">
+                    <input type="text" id="otpCode" placeholder="Nhập mã 6 số" maxlength="6" />
+                    <button type="button" id="sendOtpBtn" class="btn-otp">📧 Gửi mã</button>
                 </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="email" placeholder="your@email.com" required />
-                    <span id="emailStatus" class="status-text"></span>
+                <small id="otpTimer" class="hint"></small>
+                <div id="otpStatus" class="status-text"></div>
+                <div class="otp-instruction">
+                    ⚠️ <strong>Hướng dẫn:</strong> Nhập email → Bấm "Gửi mã" → Nhập OTP → Bấm "Đăng ký"
                 </div>
-                <div class="form-group">
-                    <label>Mật khẩu</label>
-                    <input type="password" id="password" placeholder="Mật khẩu tối thiểu 6 ký tự" required />
-                </div>
-                
-                <!-- PHẦN OTP -->
-                <div id="otpSection">
-                    <div class="form-group">
-                        <label>Mã OTP</label>
-                        <div class="otp-group">
-                            <input type="text" id="otpCode" placeholder="Nhập mã 6 số" maxlength="6" />
-                            <button type="button" id="sendOtpBtn" class="btn-otp">Gửi mã</button>
-                        </div>
-                        <small id="otpTimer" class="hint"></small>
-                        <span id="otpStatus" class="status-text"></span>
-                    </div>
-                </div>
-                
-                <button type="submit" id="registerSubmitBtn" class="btn-primary">Đăng ký</button>
-            </form>
+            </div>
+            
+            <button type="button" id="registerSubmitBtn" class="btn-primary btn-register">✅ Đăng ký</button>
+            
             <p class="switch-link">
                 Đã có tài khoản? <a href="#" id="switchToLogin">Đăng nhập</a>
             </p>
@@ -55,20 +62,22 @@
         <!-- ========== PHẦN ĐĂNG NHẬP ========== -->
         <div id="loginSection" class="form-section">
             <h2>Đăng nhập</h2>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>Tên đăng nhập</label>
-                    <input type="text" id="loginUsername" placeholder="Nhập tên đăng nhập" required />
-                </div>
-                <div class="form-group">
-                    <label>Mật khẩu</label>
-                    <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" required />
-                </div>
-                <div class="form-actions">
-                    <a href="#" id="forgotPasswordLink">Quên mật khẩu?</a>
-                    <button type="submit" class="btn-primary">Đăng nhập</button>
-                </div>
-            </form>
+            
+            <div class="form-group">
+                <label>Tên đăng nhập</label>
+                <input type="text" id="loginUsername" placeholder="Nhập tên đăng nhập" />
+            </div>
+            
+            <div class="form-group">
+                <label>Mật khẩu</label>
+                <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" />
+            </div>
+            
+            <div class="form-actions">
+                <a href="#" id="forgotPasswordLink">Quên mật khẩu?</a>
+                <button type="button" id="loginSubmitBtn" class="btn-primary">🔑 Đăng nhập</button>
+            </div>
+            
             <p class="switch-link">
                 Chưa có tài khoản? <a href="#" id="switchToRegister">Đăng ký</a>
             </p>
@@ -77,39 +86,43 @@
         <!-- ========== PHẦN QUÊN MẬT KHẨU ========== -->
         <div id="forgotSection" class="form-section">
             <h2>Quên mật khẩu</h2>
-            <form id="forgotForm">
+            
+            <div class="form-group">
+                <label>Nhập email của bạn</label>
+                <input type="email" id="forgotEmail" placeholder="your@email.com" />
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" id="sendOtpForgotBtn" class="btn-primary">📧 Gửi mã OTP</button>
+                <button type="button" id="contactAdminBtn" class="btn-secondary">📞 Liên hệ Admin</button>
+            </div>
+            
+            <div id="otpForgotSection" style="display: none;">
                 <div class="form-group">
-                    <label>Nhập email của bạn</label>
-                    <input type="email" id="forgotEmail" placeholder="your@email.com" required />
+                    <label>Mã OTP</label>
+                    <input type="text" id="otpForgotCode" placeholder="Nhập mã 6 số" maxlength="6" />
                 </div>
-                <div class="form-actions">
-                    <button type="button" id="sendOtpForgotBtn" class="btn-primary">Gửi mã OTP</button>
-                    <button type="button" id="contactAdminBtn" class="btn-secondary">Liên hệ Admin</button>
-                </div>
-                <div id="otpForgotSection" style="display: none;">
-                    <div class="form-group">
-                        <label>Mã OTP</label>
-                        <input type="text" id="otpForgotCode" placeholder="Nhập mã 6 số" maxlength="6" />
-                    </div>
-                    <button type="submit" id="resetPasswordBtn" class="btn-primary">Xác nhận và đặt lại mật khẩu</button>
-                </div>
-            </form>
+                <button type="button" id="resetPasswordBtn" class="btn-primary">🔄 Xác nhận và đặt lại mật khẩu</button>
+            </div>
+            
             <p class="switch-link">
-                <a href="#" id="backToLogin">Quay lại đăng nhập</a>
+                <a href="#" id="backToLogin">← Quay lại đăng nhập</a>
             </p>
         </div>
 
         <!-- ========== PHẦN XÁC THỰC 2 BƯỚC ========== -->
         <div id="verifySection" class="form-section">
-            <h2>Xác thực đăng nhập</h2>
-            <p id="verifyMessage">Chúng tôi đã gửi mã về email của bạn</p>
+            <h2>🔐 Xác thực đăng nhập</h2>
+            <p id="verifyMessage" class="verify-message">Chúng tôi đã gửi mã về email của bạn</p>
+            
             <div class="form-group">
                 <label>Mã xác thực</label>
                 <input type="text" id="verifyCode" placeholder="Nhập mã 6 số" maxlength="6" />
             </div>
+            
             <div class="form-actions">
-                <button type="button" id="verifyLoginBtn" class="btn-primary">Xác nhận</button>
-                <button type="button" id="resendVerifyBtn" class="btn-secondary">Gửi lại mã</button>
+                <button type="button" id="verifyLoginBtn" class="btn-primary">✅ Xác nhận</button>
+                <button type="button" id="resendVerifyBtn" class="btn-secondary">🔄 Gửi lại mã</button>
             </div>
         </div>
     </div>
