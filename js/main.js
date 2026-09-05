@@ -1,11 +1,12 @@
 import { 
-    checkUsername, checkEmail, registerUser, loginUser, getUserData 
+    checkUsername, checkEmail, registerUser, loginUser, getUserData, findUserByEmail 
 } from './auth.js';
 import { 
     generateOTP, saveOTP, verifyOTP, sendOTPEmail, deleteOTP, getOTP 
 } from './otp.js';
+import { database, ref, get, update } from './firebase-config.js';
 
-// DOM Elements
+// ============ DOM ELEMENTS ============
 const registerSection = document.getElementById('registerSection');
 const loginSection = document.getElementById('loginSection');
 const forgotSection = document.getElementById('forgotSection');
@@ -21,27 +22,20 @@ const passwordInput = document.getElementById('password');
 const displayNameInput = document.getElementById('displayName');
 const otpCodeInput = document.getElementById('otpCode');
 const sendOtpBtn = document.getElementById('sendOtpBtn');
-const verifyOtpBtn = document.getElementById('verifyOtpBtn');
-const otpSection = document.getElementById('otpSection');
 const otpTimer = document.getElementById('otpTimer');
 const otpStatus = document.getElementById('otpStatus');
 
 const loginUsername = document.getElementById('loginUsername');
 const loginPassword = document.getElementById('loginPassword');
 const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-const loginMessage = document.createElement('div');
 
 const switchToLogin = document.getElementById('switchToLogin');
 const switchToRegister = document.getElementById('switchToRegister');
 const backToLogin = document.getElementById('backToLogin');
 
-// State
-let currentEmail = '';
-let currentUsername = '';
+// ============ STATE ============
 let otpTimerInterval = null;
-let isOTPSent = false;
-let pendingUserData = null;
-let pendingLoginUser = null;
+let currentEmail = '';
 
 // ============ CHUYỂN TAB ============
 function showSection(sectionId) {
@@ -74,7 +68,7 @@ usernameInput.addEventListener('blur', async () => {
     const username = usernameInput.value.trim();
     if (username.length < 3) {
         usernameInput.classList.add('error');
-        document.getElementById('usernameStatus').textContent = 'Tên đăng nhập tối thiểu 3 ký tự!';
+        document.getElementById('usernameStatus').textContent = '❌ Tên đăng nhập tối thiểu 3 ký tự!';
         document.getElementById('usernameStatus').className = 'status-text error';
         return;
     }
@@ -89,7 +83,6 @@ usernameInput.addEventListener('blur', async () => {
         usernameInput.classList.add('success');
         document.getElementById('usernameStatus').textContent = '✅ Tên đăng nhập hợp lệ!';
         document.getElementById('usernameStatus').className = 'status-text success';
-        currentUsername = username;
     }
 });
 
@@ -131,7 +124,6 @@ sendOtpBtn.addEventListener('click', async () => {
         return;
     }
     
-    // Kiểm tra email đã tồn tại
     const exists = await checkEmail(email);
     if (exists) {
         otpStatus.textContent = '❌ Email đã được sử dụng!';
@@ -139,7 +131,6 @@ sendOtpBtn.addEventListener('click', async () => {
         return;
     }
     
-    // Tạo OTP
     const otp = generateOTP();
     const saveResult = await saveOTP(email, otp);
     
@@ -149,15 +140,13 @@ sendOtpBtn.addEventListener('click', async () => {
         return;
     }
     
-    // Gửi OTP
     const sendResult = await sendOTPEmail(email, otp);
     
     if (sendResult.success) {
         otpStatus.textContent = '✅ Mã OTP đã được gửi đến email của bạn!';
         otpStatus.className = 'status-text success';
-        isOTPSent = true;
-        otpSection.style.display = 'block';
         startOTPTimer();
+        currentEmail = email;
     } else {
         otpStatus.textContent = '❌ Gửi OTP thất bại!';
         otpStatus.className = 'status-text error';
@@ -183,45 +172,35 @@ function startOTPTimer() {
     }, 1000);
 }
 
-// ============ XÁC NHẬN OTP ============
-verifyOtpBtn.addEventListener('click', async (e) => {
+// ============ ĐĂNG KÝ ============
+registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const otp = otpCodeInput.value.trim();
-    if (otp.length !== 6) {
-        otpStatus.textContent = '❌ Vui lòng nhập đủ 6 số!';
-        otpStatus.className = 'status-text error';
-        return;
-    }
-    
-    const result = await verifyOTP(currentEmail, otp);
-    
-    if (result.success) {
-        otpStatus.textContent = '✅ Xác thực thành công!';
-        otpStatus.className = 'status-text success';
-        
-        // Chuyển sang bước đăng ký
-        await handleRegistration();
-    } else {
-        otpStatus.textContent = `❌ ${result.error}`;
-        otpStatus.className = 'status-text error';
-    }
-});
-
-// ============ ĐĂNG KÝ ============
-async function handleRegistration() {
     const displayName = displayNameInput.value.trim();
     const username = usernameInput.value.trim();
     const email = emailInput.value.trim();
     const password = passwordInput.value;
+    const otp = otpCodeInput.value.trim();
     
     if (!displayName || !username || !email || !password) {
-        alert('Vui lòng điền đầy đủ thông tin!');
+        alert('❌ Vui lòng điền đầy đủ thông tin!');
         return;
     }
     
     if (password.length < 6) {
-        alert('Mật khẩu tối thiểu 6 ký tự!');
+        alert('❌ Mật khẩu tối thiểu 6 ký tự!');
+        return;
+    }
+    
+    if (!otp || otp.length !== 6) {
+        alert('❌ Vui lòng nhập mã OTP 6 số!');
+        return;
+    }
+    
+    const verifyResult = await verifyOTP(email, otp);
+    
+    if (!verifyResult.success) {
+        alert(`❌ ${verifyResult.error}`);
         return;
     }
     
@@ -237,21 +216,18 @@ async function handleRegistration() {
     if (result.success) {
         alert('✅ Đăng ký thành công! Vui lòng đăng nhập.');
         showSection('loginSection');
-        // Reset form
         registerForm.reset();
-        otpSection.style.display = 'none';
+        otpCodeInput.value = '';
         document.getElementById('usernameStatus').textContent = '';
         document.getElementById('emailStatus').textContent = '';
         document.getElementById('otpStatus').textContent = '';
         usernameInput.classList.remove('success', 'error');
         emailInput.classList.remove('success', 'error');
-        
-        // Xóa OTP
         await deleteOTP(email);
     } else {
         alert(`❌ ${result.error}`);
     }
-}
+});
 
 // ============ ĐĂNG NHẬP ============
 loginForm.addEventListener('submit', async (e) => {
@@ -261,37 +237,29 @@ loginForm.addEventListener('submit', async (e) => {
     const password = loginPassword.value.trim();
     
     if (!username || !password) {
-        alert('Vui lòng nhập tên đăng nhập và mật khẩu!');
+        alert('❌ Vui lòng nhập tên đăng nhập và mật khẩu!');
         return;
     }
     
     const result = await loginUser(username, password);
     
     if (result.success) {
-        pendingLoginUser = result;
-        
-        // Lưu thông tin đăng nhập để xác thực 2 bước
-        sessionStorage.setItem('pendingLogin', JSON.stringify({
-            userId: result.userId,
-            email: result.userData.email
-        }));
-        
-        // Hiển thị phần xác thực 2 bước
         const maskedEmail = maskEmail(result.userData.email);
         document.getElementById('verifyMessage').textContent = 
             `Chúng tôi đã gửi mã về email ${maskedEmail}, bạn hãy kiểm tra hộp thư để hoàn thành việc đăng nhập`;
         
         showSection('verifySection');
         
-        // Gửi OTP xác thực đăng nhập
         const otp = generateOTP();
         await saveOTP(result.userData.email, otp);
         await sendOTPEmail(result.userData.email, otp);
         
-        // Lưu user để xác thực
         sessionStorage.setItem('loginOTPEmail', result.userData.email);
+        sessionStorage.setItem('pendingLogin', JSON.stringify({
+            userId: result.userId,
+            userData: result.userData
+        }));
     } else {
-        // Sai mật khẩu
         if (result.error === 'Mật khẩu không chính xác!') {
             const confirmReset = confirm('❌ Mật khẩu không đúng! Bạn có muốn chuyển đến trang quên mật khẩu?');
             if (confirmReset) {
@@ -310,25 +278,22 @@ document.getElementById('verifyLoginBtn').addEventListener('click', async () => 
     const email = sessionStorage.getItem('loginOTPEmail');
     
     if (!code || code.length !== 6) {
-        alert('Vui lòng nhập mã xác thực 6 số!');
+        alert('❌ Vui lòng nhập mã xác thực 6 số!');
         return;
     }
     
     const result = await verifyOTP(email, code);
     
     if (result.success) {
-        // Đăng nhập thành công
         const pendingData = JSON.parse(sessionStorage.getItem('pendingLogin'));
         const userData = await getUserData(pendingData.userId);
         
-        // Lưu session
         sessionStorage.setItem('currentUser', JSON.stringify({
             userId: pendingData.userId,
             ...pendingData.userData
         }));
         sessionStorage.setItem('userRole', pendingData.userData.role);
         
-        // Chuyển đến dashboard
         window.location.href = 'dashboard.html';
     } else {
         alert(`❌ ${result.error}`);
@@ -336,14 +301,11 @@ document.getElementById('verifyLoginBtn').addEventListener('click', async () => 
 });
 
 // ============ GỬI LẠI MÃ XÁC THỰC ============
-document.getElementById('resendVerifyBtn').addEventListener('click', async (e) => {
-    e.preventDefault();
-    
+document.getElementById('resendVerifyBtn').addEventListener('click', async () => {
     const email = sessionStorage.getItem('loginOTPEmail');
     const otp = generateOTP();
     await saveOTP(email, otp);
     await sendOTPEmail(email, otp);
-    
     alert('✅ Đã gửi lại mã xác thực!');
 });
 
@@ -361,13 +323,12 @@ document.getElementById('sendOtpForgotBtn').addEventListener('click', async () =
     const email = document.getElementById('forgotEmail').value.trim();
     
     if (!isValidEmail(email)) {
-        alert('Vui lòng nhập email hợp lệ!');
+        alert('❌ Vui lòng nhập email hợp lệ!');
         return;
     }
     
-    // Kiểm tra email tồn tại
-    const exists = await checkEmail(email);
-    if (!exists) {
+    const user = await findUserByEmail(email);
+    if (!user) {
         alert('❌ Email không tồn tại trong hệ thống!');
         return;
     }
@@ -388,32 +349,23 @@ document.getElementById('resetPasswordBtn').addEventListener('click', async (e) 
     const newPassword = prompt('Nhập mật khẩu mới (tối thiểu 6 ký tự):');
     
     if (!newPassword || newPassword.length < 6) {
-        alert('Mật khẩu tối thiểu 6 ký tự!');
+        alert('❌ Mật khẩu tối thiểu 6 ký tự!');
         return;
     }
     
     const verifyResult = await verifyOTP(email, otp);
     
     if (verifyResult.success) {
-        // Cập nhật mật khẩu
-        // Tìm user theo email
-        const usersRef = ref(database);
-        const snapshot = await get(child(usersRef, 'users'));
-        const users = snapshot.val();
-        
-        for (let key in users) {
-            if (users[key].email === email) {
-                await update(ref(database, `users/${key}`), {
-                    password: newPassword
-                });
-                break;
-            }
+        const user = await findUserByEmail(email);
+        if (user) {
+            await update(ref(database, `users/${user.userId}`), {
+                password: newPassword
+            });
+            alert('✅ Đặt lại mật khẩu thành công! Vui lòng đăng nhập.');
+            showSection('loginSection');
+            document.getElementById('otpForgotSection').style.display = 'none';
+            await deleteOTP(email);
         }
-        
-        alert('✅ Đặt lại mật khẩu thành công! Vui lòng đăng nhập.');
-        showSection('loginSection');
-        document.getElementById('otpForgotSection').style.display = 'none';
-        await deleteOTP(email);
     } else {
         alert(`❌ ${verifyResult.error}`);
     }
@@ -421,18 +373,15 @@ document.getElementById('resetPasswordBtn').addEventListener('click', async (e) 
 
 // ============ LIÊN HỆ ADMIN ============
 document.getElementById('contactAdminBtn').addEventListener('click', () => {
-    // Mở link liên hệ Admin
     window.open('mailto:admin@example.com?subject=Yêu cầu hỗ trợ đặt lại mật khẩu', '_blank');
-    // Hoặc mở trang liên hệ
-    // window.location.href = 'contact.html';
 });
 
-// ============ XỬ LÝ PHÍM ENTER ============
+// ============ PHÍM ENTER ============
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         const activeSection = document.querySelector('.form-section.active');
         if (activeSection) {
-            const submitBtn = activeSection.querySelector('.btn-primary');
+            const submitBtn = activeSection.querySelector('.btn-primary:not([type="button"])');
             if (submitBtn) {
                 submitBtn.click();
             }
