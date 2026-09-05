@@ -10,11 +10,11 @@ export async function checkUsername(username) {
             const users = snapshot.val();
             for (let key in users) {
                 if (users[key].username === username) {
-                    return true; // Tên đã tồn tại
+                    return true;
                 }
             }
         }
-        return false; // Tên chưa tồn tại
+        return false;
     } catch (error) {
         console.error('Lỗi kiểm tra username:', error);
         return false;
@@ -31,11 +31,11 @@ export async function checkEmail(email) {
             const users = snapshot.val();
             for (let key in users) {
                 if (users[key].email === email) {
-                    return true; // Email đã tồn tại
+                    return true;
                 }
             }
         }
-        return false; // Email chưa tồn tại
+        return false;
     } catch (error) {
         console.error('Lỗi kiểm tra email:', error);
         return false;
@@ -45,28 +45,24 @@ export async function checkEmail(email) {
 // Đăng ký tài khoản mới
 export async function registerUser(userData) {
     try {
-        // Kiểm tra username đã tồn tại
         const usernameExists = await checkUsername(userData.username);
         if (usernameExists) {
             throw new Error('Tên đăng nhập đã tồn tại!');
         }
         
-        // Kiểm tra email đã tồn tại
         const emailExists = await checkEmail(userData.email);
         if (emailExists) {
             throw new Error('Email đã được sử dụng!');
         }
         
-        // Tạo ID duy nhất
         const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
-        // Lưu vào database
         await set(ref(database, `users/${userId}`), {
             username: userData.username,
             displayName: userData.displayName,
             email: userData.email,
-            password: userData.password, // Trong thực tế nên hash password
-            role: 'user', // Mặc định là user
+            password: userData.password,
+            role: 'user',
             createdAt: new Date().toISOString(),
             avatar: 'default-avatar.png',
             coverImage: 'default-cover.png'
@@ -92,7 +88,6 @@ export async function loginUser(username, password) {
         let foundUser = null;
         let userId = null;
         
-        // Tìm user theo username
         for (let key in users) {
             if (users[key].username === username) {
                 foundUser = users[key];
@@ -105,7 +100,6 @@ export async function loginUser(username, password) {
             throw new Error('Tên đăng nhập không tồn tại!');
         }
         
-        // Kiểm tra mật khẩu
         if (foundUser.password !== password) {
             throw new Error('Mật khẩu không chính xác!');
         }
@@ -140,5 +134,28 @@ export async function updateUserData(userId, data) {
         return { success: true };
     } catch (error) {
         return { success: false, error: error.message };
+    }
+}
+
+// Tìm user theo email
+export async function findUserByEmail(email) {
+    try {
+        const usersRef = ref(database, 'users');
+        const snapshot = await get(usersRef);
+        
+        if (!snapshot.exists()) {
+            return null;
+        }
+        
+        const users = snapshot.val();
+        for (let key in users) {
+            if (users[key].email === email) {
+                return { userId: key, userData: users[key] };
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Lỗi tìm user:', error);
+        return null;
     }
 }
