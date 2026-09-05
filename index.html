@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>10a2 mãi đỉnh</title>
+    <title>Class Web - Đăng nhập / Đăng ký</title>
     <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
     <div class="container">
-        <!-- PHẦN ĐĂNG KÝ -->
+        <!-- ========== PHẦN ĐĂNG KÝ ========== -->
         <div id="registerSection" class="form-section active">
             <h2>Đăng ký tài khoản</h2>
             <form id="registerForm">
@@ -33,7 +33,7 @@
                 </div>
                 
                 <!-- PHẦN OTP -->
-                <div id="otpSection" style="display: none;">
+                <div id="otpSection">
                     <div class="form-group">
                         <label>Mã OTP</label>
                         <div class="otp-group">
@@ -43,17 +43,16 @@
                         <small id="otpTimer" class="hint"></small>
                         <span id="otpStatus" class="status-text"></span>
                     </div>
-                    <button type="submit" id="verifyOtpBtn" class="btn-primary">Xác nhận</button>
                 </div>
                 
-                <button type="button" id="showRegisterBtn" class="btn-primary">Đăng ký</button>
+                <button type="submit" id="registerSubmitBtn" class="btn-primary">Đăng ký</button>
             </form>
             <p class="switch-link">
                 Đã có tài khoản? <a href="#" id="switchToLogin">Đăng nhập</a>
             </p>
         </div>
 
-        <!-- PHẦN ĐĂNG NHẬP -->
+        <!-- ========== PHẦN ĐĂNG NHẬP ========== -->
         <div id="loginSection" class="form-section">
             <h2>Đăng nhập</h2>
             <form id="loginForm">
@@ -75,7 +74,7 @@
             </p>
         </div>
 
-        <!-- PHẦN QUÊN MẬT KHẨU -->
+        <!-- ========== PHẦN QUÊN MẬT KHẨU ========== -->
         <div id="forgotSection" class="form-section">
             <h2>Quên mật khẩu</h2>
             <form id="forgotForm">
@@ -100,7 +99,7 @@
             </p>
         </div>
 
-        <!-- PHẦN XÁC THỰC 2 BƯỚC -->
+        <!-- ========== PHẦN XÁC THỰC 2 BƯỚC ========== -->
         <div id="verifySection" class="form-section">
             <h2>Xác thực đăng nhập</h2>
             <p id="verifyMessage">Chúng tôi đã gửi mã về email của bạn</p>
@@ -110,39 +109,25 @@
             </div>
             <div class="form-actions">
                 <button type="button" id="verifyLoginBtn" class="btn-primary">Xác nhận</button>
+                <button type="button" id="resendVerifyBtn" class="btn-secondary">Gửi lại mã</button>
             </div>
-            <p class="switch-link">
-                <a href="#" id="resendVerifyBtn">Gửi lại mã</a>
-            </p>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, get, child, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-        
-        // Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyD9kALAU9R8vB6x9UBcDEW1mHWagaFLzas",
-            authDomain: "a2-k27-tvl.firebaseapp.com",
-            projectId: "a2-k27-tvl",
-            storageBucket: "a2-k27-tvl.firebasestorage.app",
-            messagingSenderId: "992341533498",
-            appId: "1:992341533498:web:44358a92094d0771e7e603",
-            measurementId: "G-0DEST6Z2YE"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const database = getDatabase(app);
-
-        // Export để các file khác dùng
-        window.db = database;
-        window.app = app;
+    <!-- ========== FIREBASE SDK ========== -->
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+                "firebase/database": "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js",
+                "firebase/analytics": "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js"
+            }
+        }
     </script>
 
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/otp.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
