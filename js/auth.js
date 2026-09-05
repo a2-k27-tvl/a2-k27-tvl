@@ -1,161 +1,116 @@
-import { database, ref, set, get, child, update, query, orderByChild, equalTo } from './firebase-config.js';
+import { database, ref, set, get, update } from './firebase-config.js';
+import { findUserByEmail } from './auth.js';
 
-// Kiểm tra tên đăng nhập đã tồn tại chưa
-export async function checkUsername(username) {
+// Lưu OTP vào database
+export async function saveOTP(email, otp) {
     try {
-        const usersRef = ref(database, 'users');
-        const snapshot = await get(usersRef);
-        
-        if (snapshot.exists()) {
-            const users = snapshot.val();
-            for (let key in users) {
-                if (users[key].username === username) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    } catch (error) {
-        console.error('Lỗi kiểm tra username:', error);
-        return false;
-    }
-}
-
-// Kiểm tra email đã tồn tại chưa
-export async function checkEmail(email) {
-    try {
-        const usersRef = ref(database, 'users');
-        const snapshot = await get(usersRef);
-        
-        if (snapshot.exists()) {
-            const users = snapshot.val();
-            for (let key in users) {
-                if (users[key].email === email) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    } catch (error) {
-        console.error('Lỗi kiểm tra email:', error);
-        return false;
-    }
-}
-
-// Đăng ký tài khoản mới
-export async function registerUser(userData) {
-    try {
-        const usernameExists = await checkUsername(userData.username);
-        if (usernameExists) {
-            throw new Error('Tên đăng nhập đã tồn tại!');
-        }
-        
-        const emailExists = await checkEmail(userData.email);
-        if (emailExists) {
-            throw new Error('Email đã được sử dụng!');
-        }
-        
-        const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        await set(ref(database, `users/${userId}`), {
-            username: userData.username,
-            displayName: userData.displayName,
-            email: userData.email,
-            password: userData.password,
-            role: 'user',
+        const otpData = {
+            otp: otp,
+            email: email,
             createdAt: new Date().toISOString(),
-            avatar: 'default-avatar.png',
-            coverImage: 'default-cover.png'
-        });
-        
-        return { success: true, userId };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-// Đăng nhập
-export async function loginUser(username, password) {
-    try {
-        const usersRef = ref(database, 'users');
-        const snapshot = await get(usersRef);
-        
-        if (!snapshot.exists()) {
-            throw new Error('Tài khoản không tồn tại!');
-        }
-        
-        const users = snapshot.val();
-        let foundUser = null;
-        let userId = null;
-        
-        for (let key in users) {
-            if (users[key].username === username) {
-                foundUser = users[key];
-                userId = key;
-                break;
-            }
-        }
-        
-        if (!foundUser) {
-            throw new Error('Tên đăng nhập không tồn tại!');
-        }
-        
-        if (foundUser.password !== password) {
-            throw new Error('Mật khẩu không chính xác!');
-        }
-        
-        return {
-            success: true,
-            userId: userId,
-            userData: foundUser
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+            attempts: 0,
+            used: false
         };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-// Lấy thông tin user
-export async function getUserData(userId) {
-    try {
-        const snapshot = await get(ref(database, `users/${userId}`));
-        if (snapshot.exists()) {
-            return { success: true, data: snapshot.val() };
-        }
-        return { success: false, error: 'Không tìm thấy user!' };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-// Cập nhật thông tin user
-export async function updateUserData(userId, data) {
-    try {
-        await update(ref(database, `users/${userId}`), data);
+        
+        const key = email.replace(/[.#$\/\[\]]/g, '_');
+        await set(ref(database, `otps/${key}`), otpData);
         return { success: true };
     } catch (error) {
         return { success: false, error: error.message };
     }
 }
 
-// Tìm user theo email
-export async function findUserByEmail(email) {
+// Lấy OTP từ database
+export async function getOTP(email) {
     try {
-        const usersRef = ref(database, 'users');
-        const snapshot = await get(usersRef);
-        
-        if (!snapshot.exists()) {
-            return null;
+        const key = email.replace(/[.#$\/\[\]]/g, '_');
+        const snapshot = await get(ref(database, `otps/${key}`));
+        if (snapshot.exists()) {
+            return { success: true, data: snapshot.val() };
         }
-        
-        const users = snapshot.val();
-        for (let key in users) {
-            if (users[key].email === email) {
-                return { userId: key, userData: users[key] };
-            }
-        }
-        return null;
+        return { success: false, error: 'OTP không tồn tại!' };
     } catch (error) {
-        console.error('Lỗi tìm user:', error);
-        return null;
+        return { success: false, error: error.message };
+    }
+}
+
+// Xác thực OTP
+export async function verifyOTP(email, otp) {
+    try {
+        const result = await getOTP(email);
+        if (!result.success) {
+            throw new Error('OTP không tồn tại! Vui lòng gửi lại mã.');
+        }
+        
+        const otpData = result.data;
+        
+        if (otpData.used) {
+            throw new Error('OTP đã được sử dụng!');
+        }
+        
+        const now = new Date();
+        const expiresAt = new Date(otpData.expiresAt);
+        if (now > expiresAt) {
+            throw new Error('OTP đã hết hạn! Vui lòng gửi lại mã.');
+        }
+        
+        if (otpData.attempts >= 5) {
+            throw new Error('Quá số lần thử cho phép! Vui lòng gửi lại mã.');
+        }
+        
+        if (otpData.otp !== otp) {
+            const key = email.replace(/[.#$\/\[\]]/g, '_');
+            await update(ref(database, `otps/${key}`), {
+                attempts: otpData.attempts + 1
+            });
+            throw new Error('OTP không đúng!');
+        }
+        
+        const key = email.replace(/[.#$\/\[\]]/g, '_');
+        await update(ref(database, `otps/${key}`), {
+            used: true
+        });
+        
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// Xóa OTP
+export async function deleteOTP(email) {
+    try {
+        const key = email.replace(/[.#$\/\[\]]/g, '_');
+        await set(ref(database, `otps/${key}`), null);
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// Tạo OTP ngẫu nhiên (6 số)
+export function generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Gửi OTP qua email (hiện tại log ra console để test)
+export async function sendOTPEmail(email, otp) {
+    try {
+        // TRONG THỰC TẾ: Gọi API gửi email ở đây
+        // Ví dụ dùng EmailJS, SendGrid, Nodemailer...
+        
+        console.log(`📧 ========================================`);
+        console.log(`📧 GỬI OTP ĐẾN: ${email}`);
+        console.log(`📧 MÃ OTP CỦA BẠN LÀ: ${otp}`);
+        console.log(`📧 OTP CÓ HIỆU LỰC TRONG 10 PHÚT`);
+        console.log(`📧 ========================================`);
+        
+        // HIỂN THỊ POPUP THÔNG BÁO (để dễ test)
+        alert(`📧 Mã OTP đã được gửi đến ${email}\n\nMã OTP: ${otp}\n\n(Kiểm tra console để xem chi tiết)`);
+        
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
     }
 }
