@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Class Web - Dashboard</title>
+    <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body>
+    <div class="maintenance-container">
+        <div class="maintenance-content">
+            <div class="icon">🔧</div>
+            <h1>Đang bảo trì</h1>
+            <p>Web đang được nâng cấp và sẽ sớm hoạt động trở lại.</p>
+            <div class="loader"></div>
+            <p class="small">Cảm ơn bạn đã kiên nhẫn!</p>
+            <button onclick="logout()" class="btn-logout">Đăng xuất</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Kiểm tra đăng nhập
+        const currentUser = sessionStorage.getItem('currentUser');
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        }
+
+        // Hiển thị thông tin user
+        try {
+            const user = JSON.parse(currentUser);
+            console.log('👤 User đã đăng nhập:', user);
+        } catch (e) {
+            console.error('Lỗi parse user:', e);
+        }
+
+        // Hàm đăng xuất
+        window.logout = function() {
+            sessionStorage.removeItem('currentUser');
+            sessionStorage.removeItem('userRole');
+            sessionStorage.removeItem('pendingLogin');
+            sessionStorage.removeItem('loginOTPEmail');
+            window.location.href = 'index.html';
+        };
+    </script>
+</body>
+</html>
