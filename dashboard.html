@@ -18,14 +18,13 @@
         </div>
     </div>
 
-    <script type="module">
+    <script>
         // Kiểm tra đăng nhập
         const currentUser = sessionStorage.getItem('currentUser');
         if (!currentUser) {
             window.location.href = 'index.html';
         }
 
-        // Hiển thị thông tin user
         try {
             const user = JSON.parse(currentUser);
             console.log('👤 User đã đăng nhập:', user);
